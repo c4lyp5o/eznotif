@@ -68,6 +68,12 @@ function App() {
 			console.error("Service Worker not supported!");
 		} else {
 			console.log("Service Worker supported!");
+			window.addEventListener("load", () => {
+				navigator.serviceWorker
+					.register("/sw.js", { scope: "/" })
+					.then((reg) => console.log("SW Registered!", reg.scope))
+					.catch((err) => console.error("SW Registration failed:", err));
+			});
 		}
 
 		return () => {
