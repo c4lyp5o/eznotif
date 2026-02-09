@@ -66,6 +66,8 @@ function App() {
 
 		if (!("serviceWorker" in navigator)) {
 			console.error("Service Worker not supported!");
+		} else {
+			console.log("Service Worker supported!");
 		}
 
 		return () => {
