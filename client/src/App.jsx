@@ -90,6 +90,7 @@ function App() {
 			const registration = await navigator.serviceWorker.ready;
 			console.log("Service Worker Ready");
 			let permission = Notification.permission;
+			console.log("Permission:", permission);
 			if (permission === "default") {
 				permission = await Notification.requestPermission();
 			}
