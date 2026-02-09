@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useSWR from "swr";
 import axios from "axios";
 
@@ -26,10 +26,53 @@ function App() {
 		isLoading,
 		mutate,
 	} = useSWR("/api/v1/subs", fetcher);
+
 	const [name, setName] = useState("");
 	const [title, setTitle] = useState("");
 	const [message, setMessage] = useState("");
 	const [loading, setLoading] = useState(false);
+
+	// console logs
+	const [logs, setLogs] = useState("");
+
+	useEffect(() => {
+		const originalLog = console.log;
+		const originalError = console.error;
+
+		const formatArgs = (args) => {
+			return args
+				.map((arg) => {
+					if (typeof arg === "object") {
+						try {
+							return JSON.stringify(arg, null, 2);
+						} catch (e) {
+							return String(arg);
+						}
+					}
+					return String(arg);
+				})
+				.join(" ");
+		};
+
+		console.log = (...args) => {
+			originalLog(...args);
+			setLogs((prev) => `${prev}> ${formatArgs(args)}\n`);
+		};
+
+		console.error = (...args) => {
+			originalError(...args);
+			setLogs((prev) => `${prev}[ERROR] ${formatArgs(args)}\n`);
+		};
+
+		if (!("serviceWorker" in navigator)) {
+			console.error("Service Worker not supported!");
+		}
+
+		return () => {
+			console.log = originalLog;
+			console.error = originalError;
+		};
+	}, []);
 
 	const handleSubscribeUser = async (e) => {
 		e.preventDefault();
@@ -37,7 +80,9 @@ function App() {
 		try {
 			setLoading(true);
 			const registration = await navigator.serviceWorker.ready;
+			console.log("Service Worker Ready");
 			if (Notification.permission === "denied") {
+				console.error("Notifications are blocked.");
 				alert("Notifications are blocked.");
 				return;
 			}
@@ -47,6 +92,7 @@ function App() {
 					"BGHZieg1LXArv9rkwxSr3exP37yClodNC0gL7WSikxpz7rUIP8_pRQIj79jd9JnCHbv4YYS2gdDHOc2UTHobvjw",
 				),
 			});
+			console.log("Subscription:", subscription);
 			await axios.post(
 				"/api/v1/subs",
 				{ name, subscription },
@@ -56,10 +102,12 @@ function App() {
 					},
 				},
 			);
+			console.log("Subscribed successfully!");
+			setName("");
 			mutate();
 			alert("Subscribed successfully!");
 		} catch (error) {
-			console.error(error);
+			console.error("Error subscribing to push:", error);
 			alert("Failed to subscribe. Please try again.");
 		} finally {
 			setLoading(false);
@@ -72,18 +120,22 @@ function App() {
 		try {
 			setLoading(true);
 			const registration = await navigator.serviceWorker.ready;
+			console.log("Service Worker Ready");
 			const subscription = await registration.pushManager.getSubscription();
+			console.log("Got subscription:", subscription);
 			await subscription.unsubscribe();
+			console.log("Unsubscribed successfully!");
 			await axios.delete("/api/v1/subs", {
 				data: { name: user.name },
 				headers: {
 					"Content-Type": "application/json",
 				},
 			});
+			console.log("User unsubscribed successfully!");
 			mutate();
 			alert("Unsubscribed!");
 		} catch (error) {
-			console.error(error);
+			console.error("Error unsubscribing user:", error);
 			alert("Failed to unsubscribe user.");
 		} finally {
 			setLoading(false);
@@ -96,10 +148,11 @@ function App() {
 		try {
 			setLoading(true);
 			await axios.delete("/api/v1/clear-subs");
+			console.log("All subscriptions cleared!");
 			mutate();
 			alert("All subscriptions cleared!");
 		} catch (error) {
-			console.error(error);
+			console.error("Error clearing subscriptions:", error);
 			alert("Failed to clear subscriptions.");
 		} finally {
 			setLoading(false);
@@ -108,7 +161,10 @@ function App() {
 
 	const handleSendNotiToUser = async (user) => {
 		try {
-			if (!("serviceWorker" in navigator)) return;
+			if (!("serviceWorker" in navigator)) {
+				console.error("Service Worker not supported!");
+				return;
+			}
 			setLoading(true);
 			await axios.post(
 				"/api/v1/notifyone",
@@ -134,7 +190,10 @@ function App() {
 		e.preventDefault();
 
 		try {
-			if (!("serviceWorker" in navigator)) return;
+			if (!("serviceWorker" in navigator)) {
+				console.error("Service Worker not supported!");
+				return;
+			}
 			setLoading(true);
 			await axios.post(
 				"/api/v1/notify",
@@ -145,8 +204,12 @@ function App() {
 					},
 				},
 			);
+			console.log("Notification sent!");
+			alert("Notification sent!");
+			setTitle("");
+			setMessage("");
 		} catch (error) {
-			console.error(error);
+			console.error("Error sending notification:", error);
 			alert("Failed to send notification. Please try again.");
 		} finally {
 			setLoading(false);
@@ -175,7 +238,8 @@ function App() {
 							<button
 								type="button"
 								onClick={handleClearSubs}
-								className="text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 px-2 py-1 rounded transition-colors"
+								disabled={loading}
+								className="text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 px-2 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 								Clear All
 							</button>
@@ -209,14 +273,16 @@ function App() {
 												<button
 													type="button"
 													onClick={() => handleSendNotiToUser(user)}
-													className="bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 px-2 py-1 rounded transition-colors"
+													disabled={loading}
+													className="bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 px-2 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 												>
 													Notify
 												</button>
 												<button
 													type="button"
 													onClick={() => handleUnsubscribeUser(user)}
-													className="bg-red-500/20 text-red-400 hover:bg-red-500/30 px-2 py-1 rounded transition-colors"
+													disabled={loading}
+													className="bg-red-500/20 text-red-400 hover:bg-red-500/30 px-2 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 												>
 													Unsub
 												</button>
@@ -248,7 +314,8 @@ function App() {
 								</div>
 								<button
 									type="submit"
-									className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 shadow-lg shadow-indigo-500/20 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+									disabled={loading}
+									className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 shadow-lg shadow-indigo-500/20 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
 								>
 									Subscribe User
 								</button>
@@ -292,12 +359,33 @@ function App() {
 								</div>
 								<button
 									type="submit"
-									className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 shadow-lg shadow-emerald-500/20 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+									disabled={loading}
+									className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 shadow-lg shadow-emerald-500/20 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
 								>
 									Send Notification
 								</button>
 							</form>
 						</div>
+					</div>
+				</div>
+
+				<div className="mt-8">
+					<div className="bg-black rounded-xl shadow-2xl border border-gray-700 overflow-hidden flex flex-col">
+						<div className="px-4 py-2 bg-gray-800 border-b border-gray-700 flex justify-between items-center">
+							<span className="text-xs font-mono text-gray-400">
+								Debug Terminal
+							</span>
+							<button
+								type="button"
+								onClick={() => setLogs("")}
+								className="text-xs text-gray-500 hover:text-white transition-colors"
+							>
+								Clear
+							</button>
+						</div>
+						<pre className="p-4 text-xs font-mono text-green-400 h-64 overflow-y-auto whitespace-pre-wrap">
+							{logs || "No logs yet..."}
+						</pre>
 					</div>
 				</div>
 			</div>
