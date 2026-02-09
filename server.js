@@ -16,6 +16,10 @@ webpush.setVapidDetails(
 	process.env.VAPID_PRIVATE_KEY,
 );
 
+const webpushOptions = {
+	urgency: "high",
+};
+
 const subscriptions = new Set();
 
 const app = express();
@@ -64,11 +68,13 @@ app.post("/api/v1/notify", async (req, res) => {
 	const payload = JSON.stringify({ title, message });
 
 	const sendNotifications = Array.from(subscriptions).map((sub) =>
-		webpush.sendNotification(sub.subscription, payload).catch((err) => {
-			if (err.statusCode === 410 || err.statusCode === 404) {
-				subscriptions.delete(sub);
-			}
-		}),
+		webpush
+			.sendNotification(sub.subscription, payload, webpushOptions)
+			.catch((err) => {
+				if (err.statusCode === 410 || err.statusCode === 404) {
+					subscriptions.delete(sub);
+				}
+			}),
 	);
 
 	await Promise.all(sendNotifications);
@@ -88,7 +94,11 @@ app.post("/api/v1/notifyone", async (req, res) => {
 		message: "GG EZ",
 	});
 
-	await webpush.sendNotification(singleSub.subscription, payload);
+	await webpush.sendNotification(
+		singleSub.subscription,
+		payload,
+		webpushOptions,
+	);
 	res.json({ message: "Test notification sent" });
 });
 
