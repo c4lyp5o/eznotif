@@ -64,18 +64,6 @@ function App() {
 			setLogs((prev) => `${prev}[ERROR] ${formatArgs(args)}\n`);
 		};
 
-		if (!("serviceWorker" in navigator)) {
-			console.error("Service Worker not supported!");
-		} else {
-			console.log("Service Worker supported!");
-			window.addEventListener("load", () => {
-				navigator.serviceWorker
-					.register("/sw.js", { scope: "/" })
-					.then((reg) => console.log("SW Registered!", reg.scope))
-					.catch((err) => console.error("SW Registration failed:", err));
-			});
-		}
-
 		return () => {
 			console.log = originalLog;
 			console.error = originalError;
