@@ -89,10 +89,14 @@ function App() {
 			setLoading(true);
 			const registration = await navigator.serviceWorker.ready;
 			console.log("Service Worker Ready");
-			if (Notification.permission === "denied") {
-				console.error("Notifications are blocked.");
-				alert("Notifications are blocked.");
-				return;
+			let permission = Notification.permission;
+			if (permission === "default") {
+				permission = await Notification.requestPermission();
+			}
+			if (permission !== "granted") {
+				console.error("Permission not granted.");
+				alert("You must allow notifications to subscribe.");
+				throw new Error("Permission not granted.");
 			}
 			const subscription = await registration.pushManager.subscribe({
 				userVisibleOnly: true,
