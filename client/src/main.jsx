@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
+import { ToastProvider } from "./context/ToastContext.jsx";
 import App from "./App.jsx";
 
 if ("serviceWorker" in navigator) {
@@ -14,6 +15,7 @@ if ("serviceWorker" in navigator) {
 
 createRoot(document.getElementById("root")).render(
 	<StrictMode>
+		<ToastProvider placement="top-right" />
 		<App />
 	</StrictMode>,
 );
