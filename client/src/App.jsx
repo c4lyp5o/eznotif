@@ -1,11 +1,15 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import useSWR from "swr";
 import axios from "axios";
 import { useToast } from "./context/ToastContext";
 
 import BaseModal from "./components/BaseModal";
+import DebugConsole from "./components/DebugConsole";
 
-const fetcher = (...args) => fetch(...args).then((res) => res.json());
+const VAPID_PUBLIC_KEY =
+	"BGHZieg1LXArv9rkwxSr3exP37yClodNC0gL7WSikxpz7rUIP8_pRQIj79jd9JnCHbv4YYS2gdDHOc2UTHobvjw";
+
+const fetcher = (url) => axios.get(url).then((res) => res.data);
 
 const urlBase64ToUint8Array = (base64String) => {
 	const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -30,7 +34,7 @@ function App() {
 		mutate,
 	} = useSWR("/api/v1/subs", fetcher);
 
-	const { showToast } = useToast();
+	const { toast } = useToast();
 
 	const [name, setName] = useState("");
 	const [title, setTitle] = useState("");
@@ -42,64 +46,17 @@ function App() {
 
 	const [isClearSubsModalOpen, setIsClearSubsModalOpen] = useState(false);
 
-	// console logs
-	const [logs, setLogs] = useState("");
-
-	const logsContainerRef = useRef(null);
-
-	useEffect(() => {
-		const originalLog = console.log;
-		const originalError = console.error;
-
-		const formatArgs = (args) => {
-			return args
-				.map((arg) => {
-					if (typeof arg === "object") {
-						try {
-							return JSON.stringify(arg, null, 2);
-						} catch (e) {
-							return String(arg);
-						}
-					}
-					return String(arg);
-				})
-				.join(" ");
-		};
-
-		console.log = (...args) => {
-			originalLog(...args);
-			setLogs((prev) => `${prev}> ${formatArgs(args)}\n`);
-		};
-
-		console.error = (...args) => {
-			originalError(...args);
-			setLogs((prev) => `${prev}[ERROR] ${formatArgs(args)}\n`);
-		};
-
-		return () => {
-			console.log = originalLog;
-			console.error = originalError;
-		};
-	}, []);
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: no
-	useEffect(() => {
-		if (logsContainerRef.current) {
-			logsContainerRef.current.scrollTop =
-				logsContainerRef.current.scrollHeight;
-		}
-	}, [logs]);
-
 	const handleSubscribeUser = async (e) => {
 		e.preventDefault();
 
 		if (!name) {
-			showToast("Please enter a name.", "error");
+			toast("Please enter a name.", "error");
 			return;
 		}
 
 		try {
 			setLoading(true);
+
 			const registration = await navigator.serviceWorker.ready;
 			console.log("Service Worker Ready");
 			let permission = Notification.permission;
@@ -109,14 +66,12 @@ function App() {
 			}
 			if (permission !== "granted") {
 				console.error("Permission not granted.");
-				alert("You must allow notifications to subscribe.");
+				toast("You must allow notifications to subscribe.", "error");
 				throw new Error("Permission not granted.");
 			}
 			const subscription = await registration.pushManager.subscribe({
 				userVisibleOnly: true,
-				applicationServerKey: urlBase64ToUint8Array(
-					"BGHZieg1LXArv9rkwxSr3exP37yClodNC0gL7WSikxpz7rUIP8_pRQIj79jd9JnCHbv4YYS2gdDHOc2UTHobvjw",
-				),
+				applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
 			});
 			console.log("Subscription:", subscription);
 			await axios.post(
@@ -131,10 +86,10 @@ function App() {
 			console.log("Subscribed successfully!");
 			setName("");
 			mutate();
-			showToast("Successfully subscribed!", "success");
+			toast("Successfully subscribed!", "success");
 		} catch (error) {
 			console.error("Error subscribing to push:", error);
-			showToast("Failed to subscribe. Try again.", "error");
+			toast("Failed to subscribe. Try again.", "error");
 		} finally {
 			setLoading(false);
 		}
@@ -164,10 +119,10 @@ function App() {
 			});
 			console.log("User unsubscribed successfully!");
 			mutate();
-			showToast("Successfully unsubscribed!", "success");
+			toast("Successfully unsubscribed!", "success");
 		} catch (error) {
 			console.error("Error unsubscribing user:", error);
-			showToast("Failed to unsubscribe. Try again.", "error");
+			toast("Failed to unsubscribe. Try again.", "error");
 		} finally {
 			setLoading(false);
 			setIsModalOpen(false);
@@ -180,7 +135,7 @@ function App() {
 
 	const handleClearSubscribers = async () => {
 		if (users?.length === 0) {
-			showToast("No subscriptions to clear.", "info");
+			toast("No subscriptions to clear.", "info");
 			return;
 		}
 
@@ -189,10 +144,10 @@ function App() {
 			await axios.delete("/api/v1/clear-subs");
 			console.log("All subscriptions cleared!");
 			mutate();
-			showToast("All subscriptions cleared!", "success");
+			toast("All subscriptions cleared!", "success");
 		} catch (error) {
 			console.error("Error clearing subscriptions:", error);
-			showToast("Failed to clear subscriptions. Try again.", "error");
+			toast("Failed to clear subscriptions. Try again.", "error");
 		} finally {
 			setLoading(false);
 			setIsClearSubsModalOpen(false);
@@ -217,13 +172,10 @@ function App() {
 					headers: { "Content-Type": "application/json" },
 				},
 			);
-			showToast(`Notification sent to ${user.name}!`, "success");
+			toast(`Notification sent to ${user.name}!`, "success");
 		} catch (error) {
 			console.error(error);
-			showToast(
-				`Failed to send notification to ${user.name} Try again.`,
-				"error",
-			);
+			toast(`Failed to send notification to ${user.name} Try again.`, "error");
 		} finally {
 			setLoading(false);
 		}
@@ -248,12 +200,12 @@ function App() {
 				},
 			);
 			console.log("Notification sent!");
-			showToast("Notification sent!", "success");
+			toast("Notification sent!", "success");
 			setTitle("");
 			setMessage("");
 		} catch (error) {
 			console.error("Error sending notification:", error);
-			showToast("Failed to send notification. Try again.", "error");
+			toast("Failed to send notification. Try again.", "error");
 		} finally {
 			setLoading(false);
 		}
@@ -302,7 +254,7 @@ function App() {
 									</div>
 								)}
 								{error && (
-									<div className="p-4 bg-red-900/20 border border-red-800 rounded-lg text-red-400 text-sm">
+									<div className="p-4 bg-red-900/20 border border-red-800 rounded-lg text-red-400 text-sm mb-2">
 										Failed to load users.
 									</div>
 								)}
@@ -365,8 +317,7 @@ function App() {
 									</div>
 									<button
 										type="submit"
-										// 1. Logic: Disable if loading OR if the input is empty
-										disabled={loading || !name}
+										disabled={loading || !name.trim()}
 										className={`
                     w-full font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800
                     bg-indigo-600 text-white 
@@ -421,7 +372,10 @@ function App() {
 									<button
 										type="submit"
 										disabled={
-											loading || !title || !message || users.length === 0
+											loading ||
+											!title.trim() ||
+											!message.trim() ||
+											users.length === 0
 										}
 										className={`
                       w-full font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-gray-800
@@ -441,28 +395,7 @@ function App() {
 						</div>
 					</div>
 
-					<div className="mt-8">
-						<div className="bg-black rounded-xl shadow-2xl border border-gray-700 overflow-hidden flex flex-col">
-							<div className="px-4 py-2 bg-gray-800 border-b border-gray-700 flex justify-between items-center">
-								<span className="text-xs font-mono text-gray-400">
-									Debug Terminal
-								</span>
-								<button
-									type="button"
-									onClick={() => setLogs("")}
-									className="text-xs text-gray-500 hover:text-white transition-colors"
-								>
-									Clear
-								</button>
-							</div>
-							<pre
-								ref={logsContainerRef}
-								className="p-4 text-xs font-mono text-green-400 h-64 overflow-y-auto whitespace-pre-wrap"
-							>
-								{logs || "No logs yet..."}
-							</pre>
-						</div>
-					</div>
+					<DebugConsole />
 				</div>
 			</div>
 
