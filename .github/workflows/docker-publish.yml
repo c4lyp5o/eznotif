@@ -1,0 +1,61 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches:
+      - staging
+      - production
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.ref_name == 'production' && 'latest' || 'staging' }}
+      ENV_NAME: ${{ github.ref_name == 'production' && 'production' || 'staging' }}
+
+    steps:
+    - name: 🧾 Checkout source
+      uses: actions/checkout@v4
+
+    - name: 🐳 Docker Login
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: 🛠️ Build & Push Docker Image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: |
+          calypso666/eznotif:${{ env.TAG }}
+          calypso666/eznotif:${{ github.sha }}
+        build-args: |
+          NODE_ENV=${{ env.ENV_NAME }}
+
+    - name: 🚀 Deploy via SSH
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        script: |
+          cd ~/own
+          docker pull calypso666/eznotif:${{ env.TAG }}
+          if [ "${{ env.TAG }}" == "staging" ]; then
+            docker tag calypso666/eznotif:staging calypso666/eznotif:latest
+          fi
+          docker compose up -d --remove-orphans eznotif
+          docker image prune -f
+
+    - name: 🔔 Notify ntfy
+      if: always()
+      run: |
+        curl \
+          -H "Title: Deploy ${{ job.status }}: eznotif" \
+          -H "Priority: ${{ job.status == 'success' && 'default' || 'high' }}" \
+          -H "Tags: ${{ job.status == 'success' && 'white_check_mark' || 'x' }},rocket" \
+          -d "Branch: ${{ github.ref_name }} | Status: ${{ job.status }}" \
+          ${{ secrets.NTFY_URL }}
