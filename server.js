@@ -8,8 +8,14 @@ import { JSONFile } from "lowdb/node";
 import notFound from "./middlewares/notFound.js";
 import errorHandler from "./middlewares/errorHandler.js";
 
-if (!process.env.VAPID_PRIVATE_KEY || !process.env.VAPID_PUBLIC_KEY) {
-	throw new Error("VAPID Keys are missing in environment variables");
+if (
+	!process.env.VAPID_PRIVATE_KEY ||
+	!process.env.VAPID_PUBLIC_KEY ||
+	!process.env.MAILTO_URL
+) {
+	throw new Error(
+		"VAPID Keys or MAILTO_URL are missing in environment variables",
+	);
 }
 
 webpush.setVapidDetails(
