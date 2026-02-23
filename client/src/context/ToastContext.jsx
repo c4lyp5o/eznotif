@@ -64,7 +64,7 @@ export const ToastProvider = ({ placement = "bottom-right" }) => {
 
 	useEffect(() => {
 		const handleToast = ({ message, type, duration }) => {
-			const id = Date.now() + Math.random(); // Unique ID
+			const id = Date.now() + Math.random();
 			const newToast = { id, message, type };
 
 			setToasts((prev) => [...prev, newToast]);
@@ -81,7 +81,7 @@ export const ToastProvider = ({ placement = "bottom-right" }) => {
 	return (
 		/* Toast Container */
 		<div
-			className={`fixed z-50 flex flex-col gap-2 pointer-events-none ${config.container}`}
+			className={`fixed z-100 flex flex-col gap-2 pointer-events-none ${config.container}`}
 		>
 			{toasts.map((toast) => (
 				<ToastItem
@@ -105,10 +105,11 @@ const ToastItem = ({ message, type, exiting, onClose, config }) => {
 
 	return (
 		<div
+			role="alert"
 			className={`
         pointer-events-auto 
         flex items-center justify-between 
-        min-w-70 max-w-sm 
+        min-w-80 max-w-sm 
         p-4 rounded-lg shadow-lg border-l-4 
         transition-all
         ${styles[type] || styles.info}
@@ -120,6 +121,7 @@ const ToastItem = ({ message, type, exiting, onClose, config }) => {
 				type="button"
 				onClick={onClose}
 				className="opacity-70 hover:opacity-100 transition-opacity p-1 cursor-pointer"
+				aria-label="Close"
 			>
 				<X size={18} />
 			</button>
@@ -128,5 +130,5 @@ const ToastItem = ({ message, type, exiting, onClose, config }) => {
 };
 
 export const useToast = () => {
-	return { showToast: toast };
+	return { toast };
 };
