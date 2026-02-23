@@ -11,11 +11,13 @@ const BaseModal = ({
 	if (!isOpen) return null;
 
 	return (
-		// biome-ignore lint/a11y/noStaticElementInteractions: intentional
 		// biome-ignore lint/a11y/useKeyWithClickEvents: intentional
 		<div
 			onClick={onClose}
 			className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 backdrop-blur-sm"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="modal-title"
 		>
 			{/** biome-ignore lint/a11y/noStaticElementInteractions: intentional */}
 			{/** biome-ignore lint/a11y/useKeyWithClickEvents: intentional */}
@@ -25,7 +27,9 @@ const BaseModal = ({
 			>
 				{/* Header */}
 				<div className="px-6 py-4 border-b border-gray-200">
-					<h3 className="text-lg font-medium text-gray-900">{title}</h3>
+					<h3 id="modal-title" className="text-lg font-medium text-gray-900">
+						{title}
+					</h3>
 				</div>
 
 				{/* Body */}
