@@ -14,12 +14,7 @@ RUN bun install
 # Copy client separately and install client dependencies + build
 COPY client ./client
 WORKDIR /app/client
-RUN bun install && \
-    if [ "$NODE_ENV" = "staging" ]; then \
-        bun run build-staging; \
-    else \
-        bun run build; \
-    fi
+RUN bun install && bun run build
 
 # Move built files to /app/public in the builder stage
 RUN mkdir -p /app/public && mv ../public/* /app/public/
