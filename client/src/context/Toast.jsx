@@ -1,14 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { X } from "lucide-react";
-
-const listeners = new Set();
-
-export const toast = (message, type = "info", duration = 3000) => {
-	listeners.forEach((listener) => {
-		listener({ message, type, duration });
-	});
-};
-
 const PLACEMENT_CONFIG = {
 	"top-right": {
 		container: "top-4 right-4 items-end",
@@ -42,7 +33,9 @@ const PLACEMENT_CONFIG = {
 	},
 };
 
-export const ToastProvider = ({ placement = "bottom-right" }) => {
+const listeners = new Set();
+
+export const ToastContainer = ({ placement = "bottom-right" }) => {
 	const [toasts, setToasts] = useState([]);
 
 	const config = useMemo(
@@ -79,7 +72,6 @@ export const ToastProvider = ({ placement = "bottom-right" }) => {
 	}, [removeToast]);
 
 	return (
-		/* Toast Container */
 		<div
 			className={`fixed z-100 flex flex-col gap-2 pointer-events-none ${config.container}`}
 		>
@@ -129,6 +121,8 @@ const ToastItem = ({ message, type, exiting, onClose, config }) => {
 	);
 };
 
-export const useToast = () => {
-	return { toast };
+export const toast = (message, type = "info", duration = 3000) => {
+	listeners.forEach((listener) => {
+		listener({ message, type, duration });
+	});
 };
