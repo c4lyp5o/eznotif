@@ -126,3 +126,10 @@ export const toast = (message, type = "info", duration = 3000) => {
 		listener({ message, type, duration });
 	});
 };
+
+toast.success = (message, duration) => toast(message, "success", duration);
+toast.error = (message, duration) => toast(message, "error", duration);
+toast.info = (message, duration) => toast(message, "info", duration);
+toast.warning = (message, duration) => toast(message, "warning", duration);
+
+export const useToast = () => ({ toast });

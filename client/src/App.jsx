@@ -1,7 +1,7 @@
 import { useState } from "react";
 import useSWR from "swr";
 import axios from "axios";
-import { useToast } from "./context/ToastContext";
+import { useToast } from "./context/Toast";
 
 import BaseModal from "./components/BaseModal";
 import DebugConsole from "./components/DebugConsole";
@@ -50,7 +50,7 @@ function App() {
 		e.preventDefault();
 
 		if (!name) {
-			toast("Please enter a name.", "error");
+			toast.error("Please enter a name.");
 			return;
 		}
 
@@ -66,7 +66,7 @@ function App() {
 			}
 			if (permission !== "granted") {
 				console.error("Permission not granted.");
-				toast("You must allow notifications to subscribe.", "error");
+				toast.error("You must allow notifications to subscribe.");
 				throw new Error("Permission not granted.");
 			}
 			const subscription = await registration.pushManager.subscribe({
@@ -86,10 +86,10 @@ function App() {
 			console.log("Subscribed successfully!");
 			setName("");
 			mutate();
-			toast("Successfully subscribed!", "success");
+			toast.success("Successfully subscribed!");
 		} catch (error) {
 			console.error("Error subscribing to push:", error);
-			toast("Failed to subscribe. Try again.", "error");
+			toast.error("Failed to subscribe. Try again.");
 		} finally {
 			setLoading(false);
 		}
@@ -119,10 +119,10 @@ function App() {
 			});
 			console.log("User unsubscribed successfully!");
 			mutate();
-			toast("Successfully unsubscribed!", "success");
+			toast.success("Successfully unsubscribed!");
 		} catch (error) {
 			console.error("Error unsubscribing user:", error);
-			toast("Failed to unsubscribe. Try again.", "error");
+			toast.error("Failed to unsubscribe. Try again.");
 		} finally {
 			setLoading(false);
 			setIsModalOpen(false);
@@ -135,7 +135,7 @@ function App() {
 
 	const handleClearSubscribers = async () => {
 		if (users?.length === 0) {
-			toast("No subscriptions to clear.", "info");
+			toast.info("No subscriptions to clear.");
 			return;
 		}
 
@@ -144,10 +144,10 @@ function App() {
 			await axios.delete("/api/v1/clear-subs");
 			console.log("All subscriptions cleared!");
 			mutate();
-			toast("All subscriptions cleared!", "success");
+			toast.success("All subscriptions cleared!");
 		} catch (error) {
 			console.error("Error clearing subscriptions:", error);
-			toast("Failed to clear subscriptions. Try again.", "error");
+			toast.error("Failed to clear subscriptions. Try again.");
 		} finally {
 			setLoading(false);
 			setIsClearSubsModalOpen(false);
@@ -172,10 +172,10 @@ function App() {
 					headers: { "Content-Type": "application/json" },
 				},
 			);
-			toast(`Notification sent to ${user.name}!`, "success");
+			toast.success(`Notification sent to ${user.name}!`);
 		} catch (error) {
 			console.error(error);
-			toast(`Failed to send notification to ${user.name} Try again.`, "error");
+			toast.error(`Failed to send notification to ${user.name} Try again.`);
 		} finally {
 			setLoading(false);
 		}
@@ -200,12 +200,12 @@ function App() {
 				},
 			);
 			console.log("Notification sent!");
-			toast("Notification sent!", "success");
+			toast.success("Notification sent!");
 			setTitle("");
 			setMessage("");
 		} catch (error) {
 			console.error("Error sending notification:", error);
-			toast("Failed to send notification. Try again.", "error");
+			toast.error("Failed to send notification. Try again.");
 		} finally {
 			setLoading(false);
 		}
