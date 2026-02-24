@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 const BaseModal = ({
 	isOpen,
 	onClose,
@@ -8,13 +10,29 @@ const BaseModal = ({
 	confirmText = "Confirm",
 	cancelText = "Cancel",
 }) => {
-	if (!isOpen) return null;
+	const [isMounted, setIsMounted] = useState(false);
+	const [isAnimating, setIsAnimating] = useState(false);
+
+	useEffect(() => {
+		if (isOpen) {
+			setIsMounted(true);
+			const timer = setTimeout(() => setIsAnimating(true), 10);
+			return () => clearTimeout(timer);
+		}
+		setIsAnimating(false);
+		const timer = setTimeout(() => setIsMounted(false), 300);
+		return () => clearTimeout(timer);
+	}, [isOpen]);
+
+	if (!isMounted) return null;
 
 	return (
 		// biome-ignore lint/a11y/useKeyWithClickEvents: intentional
 		<div
 			onClick={onClose}
-			className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 backdrop-blur-sm"
+			className={`fixed inset-0 z-50 flex items-center justify-center bg-black/25 backdrop-blur-sm transition-opacity duration-300 ${
+				isAnimating ? "opacity-100" : "opacity-0"
+			}`}
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby="modal-title"
@@ -23,7 +41,9 @@ const BaseModal = ({
 			{/** biome-ignore lint/a11y/useKeyWithClickEvents: intentional */}
 			<div
 				onClick={(e) => e.stopPropagation()}
-				className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden"
+				className={`bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden transition-all duration-300 ${
+					isAnimating ? "opacity-100 scale-100" : "opacity-0 scale-95"
+				}`}
 			>
 				{/* Header */}
 				<div className="px-6 py-4 border-b border-gray-200">
